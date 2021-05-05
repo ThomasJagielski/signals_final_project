@@ -1,6 +1,6 @@
 Fs = 8192;
 f_c = 1000;
-bits_to_send = StringToBits('Hello');
+bits_to_send = StringToBits('Bye');
 msg_length = length(bits_to_send)/8;
 SymbolPeriod = 100;
 
