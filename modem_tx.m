@@ -12,6 +12,7 @@ m_us = upsample(m, SymbolPeriod);
 m_boxy = conv(m_us, ones(SymbolPeriod, 1));
 plot(m_boxy); % visualize the boxy signal
 
+%%
 % create a cosine with analog frequency f_c
 c = cos(2*pi*f_c/Fs*[0:length(m_boxy)-1]');
 % create the transmitted signal
