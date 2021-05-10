@@ -9,7 +9,8 @@ On the receiving side, we must first identify the beginning of our signal.  This
 ___
 The block diagram of our entire system can be visualized below.  This diagram indicates a theoretical practical implementation for the acoustic modem system, which is not the case we considered with the MVP.  For example, in the MVP - as we are not transmitting a signal over the air - there will be no losses due to the H(jω) transfer function.  Similarly, we did not need to multiply by a gain G1.
 
-__*Figure 1:__ Block diagram for whole acoustic modem.  For the MVP system, we assumed there were no losses over the air (H(jω)=1) and G1 was 1.*
+![Block Diagram](block_diagram.jpg)
+*Block diagram for whole acoustic modem.  For the MVP system, we assumed there were no losses over the air (H(jω)=1) and G1 was 1.*
 
 ### Implementation -- Sending and Decoding Messages
 ___
@@ -17,42 +18,46 @@ As mentioned early we will be sending and receiving messages over the air. This 
 
 #### Transmission
 While much of the transmission-related part of this project was already done, we want to show what was done as it directly impacts our decisions in processing the signal. We established earlier that the transmission would be text data that is converted into a sequence of binary data. This data needs to be converted into a signal that can be transferred over the air. To accomplish this we turn this sequence of bits into a square wave. 
-Below are examples with the string “*Hello*”:
-
+Below are examples with the string “*Hello*” in bosth the time and frequency domain:
+![Binary Pulses](Hello_binary_encoding.png)
+![Binary Pulses_freq](Hello_binary_encoding_frequency.png)
 
 The above square wave is close to what we need to transmit across the air. Unfortunately this is too low of a frequency of signal to be transmitted through the air. This frequency is usually much higher. Our implementation uses a carrying frequency of 1000 hz. We create the final signal that is transmitted by multiplying a sinusoid (cosine) of that frequency onto our square wave signal. 
 
-
-
+![Cosine_zoom](transmitted_signal_zoom.png)
+![Transmitted signal zoom](transmitted_signal.png)
 We also care about what the frequency content of this signal is as we are using amplitude modulation.
+![Transmitted signal](transmit_signal_frequency.png)
 
-
-There is one final addition to this signal before it is transmitted. That piece is a little bit of noise at the beginning of a signal that is very different than the informative part of our signal. This noise is added so that we can accurately find the start of the signal when we are receiving it. 
+There is one final addition to this signal before it is transmitted. That piece is a little bit of noise at the beginning of a signal that is very different than the informative part of our signal. This noise is added so that we can accurately find the start of the signal when we are receiving it. This is shown a the beginning of the previous plot
 
 #### Receiving and Processing
 The receiving part of this process is certainly more complicated than the transmission. The transmitted signal is read in via a microphone.
 
-
+![Raw rx](processed_raw.png)
 
 The first step in the processing of this signal is to find the starting point of the transmission. In the transmission we intentionally added a noisy block at the beginning and by using cross-correlation we are able to find the point at which the data-containing part of the signal starts. We then trip the signal to this section.
 
-
+![trim rx](processed_trimmed.png)
 
 Following our block diagram, we next multiply the remaining signal by the same sinusoid that was done in the transmission.  This allowed us to recenter the signal about the original frequency of the encoded signal.  In doing this, we also expect the frequency content to be clustered around zero at this point as we have multiplied by the same cosine twice.
 
+
+![cos_rx](processed_cos.png)
 
 
 The next step in our block diagram requires us to Low-pass filter this signal (needed because we multiplied by cosines). We experimented with multiple different filtering styles, using matlab’s butter function, however we found that convolving with a sinc function seemed to yield better results.
 
 
+![sinc_rx](signal_after_sinc_lpf.png)
+
 
 This signal is starting to look more like what we started with. The next step of processing this signal is turning it into something that is bounded between 0 and 1 (a boxy plot) as opposed to a continuous plot.
 
+![discrete_rx](signal_w_binary_processing.png)
 
 
-With any luck this should look like a slightly shifted version of the original sent box plot. This signal still needs to be down sampled to find the bits that each box corresponds to. The first part of that problem is identifying the offset of the signal. This is achieved by calculating the average peak and doing a modulus operation by the signal period. The returned value should be the offset. 
-
-INSERT THE OFFSET CORRECTED PLOT HERE
+With any luck this should look like a slightly shifted version of the original sent box plot. This signal still needs to be down sampled to find the bits that each box corresponds to. The first part of that problem is identifying the offset of the signal. This is achieved by calculating the average peak and doing a modulus operation by the signal period. The returned value should be the offset. The signal is then adjusted to refelct this offset
 
 Next this signal must be sampled. We choose to sample in the middle of each sampling period. In our case that means we sample the 50th point, the 150th, the 250th etc.
 One tricky part about this is that locating the end of the signal transmission is difficult. In our attempts we have chosen to make use of knowing the length of message that we are looking for. However, we believe that an additional step could be applied to search for the end of the signal before it is discretized. As the amplitude of the signal is attenuated greatly.
